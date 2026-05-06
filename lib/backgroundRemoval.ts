@@ -1,68 +1,63 @@
 /**
  * Background removal wrapper around @imgly/background-removal.
  *
- * Compatible with @imgly/background-removal v1.4.x — its config schema is:
+ * IMPORTANT: imgly is loaded LAZILY (dynamic import) so that Next.js
+ * production build doesn't try to evaluate WASM/worker code on the server.
+ * This is why we keep the file free of any top-level imports from imgly.
+ *
+ * Compatible with @imgly/background-removal v1.4.x — schema:
  *   model:  z.enum(['small', 'medium']).default('medium')
  *   output: { format: 'image/png' | 'image/jpeg' | 'image/webp' | ..., quality: number }
- *   publicPath, debug, progress
- *
- * Why this library:
- *  - Runs ENTIRELY in the browser (no Python service, no API key).
- *  - Uses ONNX Runtime Web with a U2Net-derived model + alpha matting,
- *    which gives clean edges for typical white-background product photos.
- *  - Models cached in browser after first download (~30–80 MB).
  */
-
-import { removeBackground, type Config } from '@imgly/background-removal';
 
 let warmedUp = false;
 
-/**
- * 'medium' = best quality model in v1.4.x (recommended for product photos).
- * 'small'  = faster, slightly lower edge quality (use for very large batches).
- */
-type BgModel = 'small' | 'medium';
+type ImglyModule = typeof import('@imgly/background-removal');
+type Config = Parameters<ImglyModule['removeBackground']>[1];
 
-const DEFAULT_CONFIG: Config = {
+/** Cache the imported module so we only download/load it once. */
+let imglyPromise: Promise<ImglyModule> | null = null;
+function getImgly(): Promise<ImglyModule> {
+  if (!imglyPromise) {
+    imglyPromise = import('@imgly/background-removal');
+  }
+  return imglyPromise;
+}
+
+const BASE_CONFIG: Config = {
   output: { format: 'image/png', quality: 0.95 },
-  model: 'medium',
+  model: 'medium', // 'small' | 'medium' in v1.4.x; 'medium' = best quality
   debug: false,
-  // Default public path is fine; uncomment if you want to pin it:
-  // publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.4.5/dist/',
 };
 
 export interface RemoveBgOptions {
-  /** Higher quality just stays on 'medium' (best in v1.4.x). Kept for forward-compat. */
+  /** Reserved for future versions; in v1.4.x both modes use 'medium'. */
   highQuality?: boolean;
   onProgress?: (key: string, current: number, total: number) => void;
 }
 
 function buildConfig(opts: RemoveBgOptions): Config {
-  // In v1.4.x both options collapse to 'medium' (the best the library has).
-  // 'small' is exposed only as a perf escape hatch — pass highQuality: false
-  // AND change the line below to switch to 'small' if you ever need speed.
-  const model: BgModel = 'medium';
   return {
-    ...DEFAULT_CONFIG,
-    model,
+    ...BASE_CONFIG,
     progress: opts.onProgress,
   };
 }
 
 /**
  * Removes the background from an image and returns a transparent PNG Blob.
- * Accepts a File, Blob, or string URL.
+ * Accepts a File, Blob, or string URL. Browser-only.
  */
 export async function removeImageBackground(
   source: File | Blob | string,
   opts: RemoveBgOptions = {}
 ): Promise<Blob> {
+  const { removeBackground } = await getImgly();
   const blob = await removeBackground(source, buildConfig(opts));
   warmedUp = true;
   return blob;
 }
 
-/** Preload models so the first user interaction is fast. Safe to call multiple times. */
+/** Preload the model so the first user interaction is fast. Safe to call multiple times. */
 export async function warmUpBackgroundRemoval(
   onProgress?: (key: string, current: number, total: number) => void
 ): Promise<void> {
@@ -71,6 +66,7 @@ export async function warmUpBackgroundRemoval(
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=';
   try {
+    const { removeBackground } = await getImgly();
     await removeBackground(tinyPng, buildConfig({ onProgress }));
     warmedUp = true;
   } catch {
@@ -83,11 +79,8 @@ export function isWarmedUp() {
 }
 
 /* ------------------------------------------------------------------------- *
- * If you upgrade @imgly/background-removal to v1.5+ (uses isnet model names):
- *   1. In package.json bump to: "@imgly/background-removal": "^1.6.0"
- *   2. Run: npm install
- *   3. Change the type alias above to:
- *        type BgModel = 'isnet' | 'isnet_fp16' | 'isnet_quint8';
- *   4. In buildConfig: model = opts.highQuality ? 'isnet' : 'isnet_fp16';
- * Everything else stays the same.
+ * Upgrading to v1.5+ (uses isnet model names):
+ *   1. package.json: "@imgly/background-removal": "^1.6.0"
+ *   2. npm install
+ *   3. In BASE_CONFIG change model to 'isnet' (best) or 'isnet_fp16' (fast).
  * ------------------------------------------------------------------------- */
