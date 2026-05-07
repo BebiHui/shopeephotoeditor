@@ -5,6 +5,7 @@ import { PhotoUploader } from '@/components/PhotoUploader';
 import { LogoLibrary } from '@/components/LogoLibrary';
 import { EnhancementControls } from '@/components/EnhancementControls';
 import { LogoControls } from '@/components/LogoControls';
+import { TopRightLogosControls } from '@/components/TopRightLogosControls';
 import { CanvasControls } from '@/components/CanvasControls';
 import { PhotoGrid } from '@/components/PhotoGrid';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
@@ -102,6 +103,7 @@ export default function HomePage() {
           enhancement: state.manualEnhancement,
           canvasCfg: state.canvasConfig,
           logoCfg: state.logoConfig,
+          topRightLogosCfg: state.topRightLogosCfg,
         });
         updatePhoto(photoId, {
           finalBlob,
@@ -213,6 +215,16 @@ export default function HomePage() {
             <CardHeader step={4} title="Posisi & Ukuran Logo" />
             <CardBody>
               <LogoControls />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Additional Top Right Logos"
+              subtitle="Tempel 2 logo (mis. badge Original + brand) di pojok kanan atas."
+            />
+            <CardBody>
+              <TopRightLogosControls />
             </CardBody>
           </Card>
 

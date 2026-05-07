@@ -4,6 +4,8 @@
  *  - Auto-fits the product to a square marketplace canvas with padding
  *  - Paints the chosen background (white, transparent, gray, custom)
  *  - Stamps the store logo on top, in the chosen position
+ *  - LAST: stamps up to 2 additional logos vertically in the top-right corner
+ *    (so they're always on top of everything, including the product & main logo)
  *
  * The output is always a square PNG suitable for Shopee (1024x1024 default).
  */
@@ -12,16 +14,19 @@ import type {
   CanvasConfig,
   EnhancementParams,
   LogoConfig,
+  TopRightLogosConfig,
 } from './types';
 import { enhanceImage } from './imageEnhancement';
 import { getOpaqueBounds, loadImage } from './utils';
 
 export interface ComposeArgs {
   cutoutBlob: Blob;          // transparent PNG from background removal
-  logoUrl?: string;           // optional logo url
+  logoUrl?: string;           // optional main store logo url
   enhancement: EnhancementParams;
   canvasCfg: CanvasConfig;
   logoCfg: LogoConfig;
+  /** Optional: 2 stacked logos in the top-right corner (added last). */
+  topRightLogosCfg?: TopRightLogosConfig;
 }
 
 export interface ComposeResult {
@@ -30,7 +35,7 @@ export interface ComposeResult {
 }
 
 export async function composeFinalImage(args: ComposeArgs): Promise<ComposeResult> {
-  const { cutoutBlob, logoUrl, enhancement, canvasCfg, logoCfg } = args;
+  const { cutoutBlob, logoUrl, enhancement, canvasCfg, logoCfg, topRightLogosCfg } = args;
 
   // Load cutout
   const cutoutImg = await loadImage(cutoutBlob);
@@ -63,10 +68,16 @@ export async function composeFinalImage(args: ComposeArgs): Promise<ComposeResul
   const drawY = (size - drawH) / 2;
   ctx.drawImage(trimmed, drawX, drawY, drawW, drawH);
 
-  // Step 5: stamp logo on top
+  // Step 5: stamp main store logo on top
   if (logoUrl) {
     const logoImg = await loadImage(logoUrl);
     drawLogo(ctx, logoImg, size, logoCfg);
+  }
+
+  // Step 6 (LAST): stamp the 2 additional top-right logos so they're always
+  // on top of the product and the main store logo.
+  if (topRightLogosCfg) {
+    await drawTopRightLogos(ctx, size, topRightLogosCfg);
   }
 
   const dataUrl = out.toDataURL('image/png');
@@ -126,6 +137,59 @@ function drawLogo(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(logo, x, y, logoW, logoH);
+  ctx.restore();
+}
+
+/**
+ * Draw up to 2 logos stacked vertically at the top-right corner.
+ * - Logo 1 is the upper one, logo 2 is below it.
+ * - All sizes specified in `cfg` are at 1024x1024 reference; we scale them
+ *   to the actual canvas size so 800/1080/1200 outputs look proportional.
+ * - Aspect ratio of each logo is preserved (logo width is fixed; height = w * aspect).
+ * - Logos are drawn LAST so they always sit on top of the product and store logo.
+ */
+async function drawTopRightLogos(
+  ctx: CanvasRenderingContext2D,
+  canvasSize: number,
+  cfg: TopRightLogosConfig
+) {
+  const slots: { url: string }[] = [];
+  if (cfg.logo1.enabled && cfg.logo1.url) slots.push({ url: cfg.logo1.url });
+  if (cfg.logo2.enabled && cfg.logo2.url) slots.push({ url: cfg.logo2.url });
+  if (slots.length === 0) return;
+
+  // Scale all reference px values from 1024 to actual canvas size
+  const k = canvasSize / 1024;
+  const widthPx = Math.max(1, cfg.widthPx * k);
+  const marginTop = Math.max(0, cfg.marginTopPx * k);
+  const marginRight = Math.max(0, cfg.marginRightPx * k);
+  const gap = Math.max(0, cfg.gapPx * k);
+
+  ctx.save();
+  ctx.globalAlpha = clamp(cfg.opacity, 0, 1);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  let cursorY = marginTop;
+  for (const s of slots) {
+    let img: HTMLImageElement;
+    try {
+      img = await loadImage(s.url);
+    } catch {
+      // Skip a logo we can't load instead of failing the whole render.
+      continue;
+    }
+    const aspect = img.naturalHeight / Math.max(1, img.naturalWidth);
+    const drawW = widthPx;
+    const drawH = drawW * aspect;
+    // Right-align: x = canvas - width - rightMargin
+    const x = canvasSize - drawW - marginRight;
+    // Clamp so it never overflows the canvas (defense; small logos won't trigger this)
+    const y = Math.min(cursorY, canvasSize - drawH);
+    ctx.drawImage(img, x, y, drawW, drawH);
+    cursorY = y + drawH + gap;
+  }
+
   ctx.restore();
 }
 

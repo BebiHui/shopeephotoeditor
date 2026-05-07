@@ -7,8 +7,10 @@ import type {
   EnhancementParams,
   LogoConfig,
   CanvasConfig,
+  TopRightLogosConfig,
+  TopRightLogo,
 } from '@/lib/types';
-import { PRESET_PARAMS } from '@/lib/types';
+import { PRESET_PARAMS, DEFAULT_TOP_RIGHT_LOGOS_CFG } from '@/lib/types';
 import { uid } from '@/lib/utils';
 
 export interface EditorState {
@@ -34,13 +36,20 @@ export interface EditorState {
   setManualEnhancement: (patch: Partial<EnhancementParams>) => void;
   getEffectiveEnhancement: () => EnhancementParams;
 
-  // Logo config
+  // Logo config (main store logo)
   logoConfig: LogoConfig;
   setLogoConfig: (patch: Partial<LogoConfig>) => void;
 
   // Canvas config
   canvasConfig: CanvasConfig;
   setCanvasConfig: (patch: Partial<CanvasConfig>) => void;
+
+  // Additional top-right logos
+  topRightLogosCfg: TopRightLogosConfig;
+  setTopRightLogosCfg: (patch: Partial<TopRightLogosConfig>) => void;
+  setTopRightLogo: (slot: 'logo1' | 'logo2', patch: Partial<TopRightLogo>) => void;
+  uploadTopRightLogo: (slot: 'logo1' | 'logo2', file: File) => void;
+  clearTopRightLogo: (slot: 'logo1' | 'logo2') => void;
 
   // UI
   isProcessing: boolean;
@@ -153,7 +162,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })),
   getEffectiveEnhancement: () => get().manualEnhancement,
 
-  // ----- Logo config -----
+  // ----- Logo config (main) -----
   logoConfig: DEFAULT_LOGO_CFG,
   setLogoConfig: (patch) =>
     set((s) => ({ logoConfig: { ...s.logoConfig, ...patch } })),
@@ -162,6 +171,58 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   canvasConfig: DEFAULT_CANVAS_CFG,
   setCanvasConfig: (patch) =>
     set((s) => ({ canvasConfig: { ...s.canvasConfig, ...patch } })),
+
+  // ----- Top-right logos -----
+  topRightLogosCfg: DEFAULT_TOP_RIGHT_LOGOS_CFG,
+  setTopRightLogosCfg: (patch) =>
+    set((s) => ({ topRightLogosCfg: { ...s.topRightLogosCfg, ...patch } })),
+  setTopRightLogo: (slot, patch) =>
+    set((s) => {
+      const old = s.topRightLogosCfg[slot];
+      // Revoke old object URL only when we're replacing it with something different
+      if (
+        patch.url !== undefined &&
+        old.url &&
+        old.url !== patch.url
+      ) {
+        URL.revokeObjectURL(old.url);
+      }
+      return {
+        topRightLogosCfg: {
+          ...s.topRightLogosCfg,
+          [slot]: { ...old, ...patch },
+        },
+      };
+    }),
+  uploadTopRightLogo: (slot, file) => {
+    const url = URL.createObjectURL(file);
+    set((s) => {
+      const old = s.topRightLogosCfg[slot];
+      if (old.url) URL.revokeObjectURL(old.url);
+      return {
+        topRightLogosCfg: {
+          ...s.topRightLogosCfg,
+          [slot]: {
+            ...old,
+            url,
+            fileName: file.name,
+            enabled: true, // auto-enable on upload — user expects it to show up
+          },
+        },
+      };
+    });
+  },
+  clearTopRightLogo: (slot) =>
+    set((s) => {
+      const old = s.topRightLogosCfg[slot];
+      if (old.url) URL.revokeObjectURL(old.url);
+      return {
+        topRightLogosCfg: {
+          ...s.topRightLogosCfg,
+          [slot]: { enabled: false },
+        },
+      };
+    }),
 
   // ----- UI -----
   isProcessing: false,

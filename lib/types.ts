@@ -73,3 +73,43 @@ export const PRESET_PARAMS: Record<Exclude<EnhancementPreset, 'custom'>, Enhance
   bright:  { brightness: 15, contrast: 5, saturation: 0, sharpness: 10, warmth: -5 },
   premium: { brightness: 8, contrast: 18, saturation: 10, sharpness: 20, warmth: 4 },
 };
+
+/* ───────── Top-right additional logos (e.g. "Original Guarantee" + brand) ───────── */
+
+/**
+ * Single slot for the top-right corner. We keep two of these (logo1 above, logo2 below).
+ */
+export interface TopRightLogo {
+  enabled: boolean;
+  url?: string;       // object URL of uploaded file
+  fileName?: string;
+}
+
+/**
+ * All measurements are specified in pixels at a 1024x1024 reference canvas.
+ * The composer scales them proportionally for 800/1080/1200 outputs.
+ */
+export interface TopRightLogosConfig {
+  logo1: TopRightLogo;
+  logo2: TopRightLogo;
+  /** Logo width in px @ 1024. Default 150. */
+  widthPx: number;
+  /** Distance from top edge in px @ 1024. Default 20. */
+  marginTopPx: number;
+  /** Distance from right edge in px @ 1024. Default 20. */
+  marginRightPx: number;
+  /** Gap between logo1 and logo2 in px @ 1024. Default 12. */
+  gapPx: number;
+  /** Global opacity for both logos, 0..1. Default 1. */
+  opacity: number;
+}
+
+export const DEFAULT_TOP_RIGHT_LOGOS_CFG: TopRightLogosConfig = {
+  logo1: { enabled: false },
+  logo2: { enabled: false },
+  widthPx: 150,
+  marginTopPx: 20,
+  marginRightPx: 20,
+  gapPx: 12,
+  opacity: 1,
+};
