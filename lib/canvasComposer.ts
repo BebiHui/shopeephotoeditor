@@ -15,9 +15,11 @@ import type {
   EnhancementParams,
   LogoConfig,
   TopRightLogosConfig,
+  ProductTextContent,
 } from './types';
 import { enhanceImage } from './imageEnhancement';
 import { getOpaqueBounds, loadImage } from './utils';
+import { drawProductText } from './textComposer';
 
 export interface ComposeArgs {
   cutoutBlob: Blob;          // transparent PNG from background removal
@@ -27,6 +29,8 @@ export interface ComposeArgs {
   logoCfg: LogoConfig;
   /** Optional: 2 stacked logos in the top-right corner (added last). */
   topRightLogosCfg?: TopRightLogosConfig;
+  /** Optional: Title / Code / Fitment text overlays drawn after the logos. */
+  textContent?: ProductTextContent;
 }
 
 export interface ComposeResult {
@@ -35,7 +39,7 @@ export interface ComposeResult {
 }
 
 export async function composeFinalImage(args: ComposeArgs): Promise<ComposeResult> {
-  const { cutoutBlob, logoUrl, enhancement, canvasCfg, logoCfg, topRightLogosCfg } = args;
+  const { cutoutBlob, logoUrl, enhancement, canvasCfg, logoCfg, topRightLogosCfg, textContent } = args;
 
   // Load cutout
   const cutoutImg = await loadImage(cutoutBlob);
@@ -74,10 +78,15 @@ export async function composeFinalImage(args: ComposeArgs): Promise<ComposeResul
     drawLogo(ctx, logoImg, size, logoCfg);
   }
 
-  // Step 6 (LAST): stamp the 2 additional top-right logos so they're always
-  // on top of the product and the main store logo.
+  // Step 6: stamp the 2 additional top-right logos.
   if (topRightLogosCfg) {
     await drawTopRightLogos(ctx, size, topRightLogosCfg);
+  }
+
+  // Step 7 (LAST): draw text overlays — Title, Code (+ Original label), Fitment.
+  // Drawn last so they sit on top of everything (incl. logos by design).
+  if (textContent) {
+    await drawProductText({ ctx, canvasSize: size, content: textContent });
   }
 
   const dataUrl = out.toDataURL('image/png');

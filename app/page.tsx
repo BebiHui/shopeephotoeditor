@@ -6,6 +6,7 @@ import { LogoLibrary } from '@/components/LogoLibrary';
 import { EnhancementControls } from '@/components/EnhancementControls';
 import { LogoControls } from '@/components/LogoControls';
 import { TopRightLogosControls } from '@/components/TopRightLogosControls';
+import { TextContentControls } from '@/components/TextContentControls';
 import { CanvasControls } from '@/components/CanvasControls';
 import { PhotoGrid } from '@/components/PhotoGrid';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
@@ -104,6 +105,7 @@ export default function HomePage() {
           canvasCfg: state.canvasConfig,
           logoCfg: state.logoConfig,
           topRightLogosCfg: state.topRightLogosCfg,
+          textContent: state.textContent,
         });
         updatePhoto(photoId, {
           finalBlob,
@@ -225,6 +227,16 @@ export default function HomePage() {
             />
             <CardBody>
               <TopRightLogosControls />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Product Text Content"
+              subtitle="Judul, kode, & peruntukan motor — Canva-style styling, live preview."
+            />
+            <CardBody>
+              <TextContentControls />
             </CardBody>
           </Card>
 

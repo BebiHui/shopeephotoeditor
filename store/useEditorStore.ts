@@ -9,8 +9,20 @@ import type {
   CanvasConfig,
   TopRightLogosConfig,
   TopRightLogo,
+  ProductTextContent,
+  ProductTitleConfig,
+  ProductCodeConfig,
+  FitmentConfig,
+  TextStyle,
+  BoxStyle,
+  TextPresetKey,
 } from '@/lib/types';
-import { PRESET_PARAMS, DEFAULT_TOP_RIGHT_LOGOS_CFG } from '@/lib/types';
+import {
+  PRESET_PARAMS,
+  DEFAULT_TOP_RIGHT_LOGOS_CFG,
+  DEFAULT_PRODUCT_TEXT_CONTENT,
+  TEXT_PRESETS,
+} from '@/lib/types';
 import { uid } from '@/lib/utils';
 
 export interface EditorState {
@@ -50,6 +62,20 @@ export interface EditorState {
   setTopRightLogo: (slot: 'logo1' | 'logo2', patch: Partial<TopRightLogo>) => void;
   uploadTopRightLogo: (slot: 'logo1' | 'logo2', file: File) => void;
   clearTopRightLogo: (slot: 'logo1' | 'logo2') => void;
+
+  // Product text content (Title / Code / Fitment)
+  textContent: ProductTextContent;
+  setTitle: (patch: Partial<ProductTitleConfig>) => void;
+  setTitleStyle: (patch: Partial<TextStyle>) => void;
+  setTitleBackground: (patch: Partial<BoxStyle>) => void;
+  setCode: (patch: Partial<ProductCodeConfig>) => void;
+  setCodeStyle: (patch: Partial<TextStyle>) => void;
+  setLabelStyle: (patch: Partial<TextStyle>) => void;
+  setLabelBackground: (patch: Partial<BoxStyle>) => void;
+  setFitment: (patch: Partial<FitmentConfig>) => void;
+  setFitmentStyle: (patch: Partial<TextStyle>) => void;
+  setFitmentBackground: (patch: Partial<BoxStyle>) => void;
+  applyTextPreset: (key: TextPresetKey) => void;
 
   // UI
   isProcessing: boolean;
@@ -179,19 +205,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setTopRightLogo: (slot, patch) =>
     set((s) => {
       const old = s.topRightLogosCfg[slot];
-      // Revoke old object URL only when we're replacing it with something different
-      if (
-        patch.url !== undefined &&
-        old.url &&
-        old.url !== patch.url
-      ) {
+      if (patch.url !== undefined && old.url && old.url !== patch.url) {
         URL.revokeObjectURL(old.url);
       }
       return {
-        topRightLogosCfg: {
-          ...s.topRightLogosCfg,
-          [slot]: { ...old, ...patch },
-        },
+        topRightLogosCfg: { ...s.topRightLogosCfg, [slot]: { ...old, ...patch } },
       };
     }),
   uploadTopRightLogo: (slot, file) => {
@@ -202,12 +220,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return {
         topRightLogosCfg: {
           ...s.topRightLogosCfg,
-          [slot]: {
-            ...old,
-            url,
-            fileName: file.name,
-            enabled: true, // auto-enable on upload — user expects it to show up
-          },
+          [slot]: { ...old, url, fileName: file.name, enabled: true },
         },
       };
     });
@@ -217,12 +230,94 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const old = s.topRightLogosCfg[slot];
       if (old.url) URL.revokeObjectURL(old.url);
       return {
-        topRightLogosCfg: {
-          ...s.topRightLogosCfg,
-          [slot]: { enabled: false },
-        },
+        topRightLogosCfg: { ...s.topRightLogosCfg, [slot]: { enabled: false } },
       };
     }),
+
+  // ----- Product Text Content -----
+  textContent: DEFAULT_PRODUCT_TEXT_CONTENT,
+  setTitle: (patch) =>
+    set((s) => ({ textContent: { ...s.textContent, title: { ...s.textContent.title, ...patch } } })),
+  setTitleStyle: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        title: { ...s.textContent.title, style: { ...s.textContent.title.style, ...patch } },
+      },
+    })),
+  setTitleBackground: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        title: { ...s.textContent.title, background: { ...s.textContent.title.background, ...patch } },
+      },
+    })),
+  setCode: (patch) =>
+    set((s) => ({ textContent: { ...s.textContent, code: { ...s.textContent.code, ...patch } } })),
+  setCodeStyle: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        code: { ...s.textContent.code, style: { ...s.textContent.code.style, ...patch } },
+      },
+    })),
+  setLabelStyle: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        code: { ...s.textContent.code, labelStyle: { ...s.textContent.code.labelStyle, ...patch } },
+      },
+    })),
+  setLabelBackground: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        code: {
+          ...s.textContent.code,
+          labelBackground: { ...s.textContent.code.labelBackground, ...patch },
+        },
+      },
+    })),
+  setFitment: (patch) =>
+    set((s) => ({ textContent: { ...s.textContent, fitment: { ...s.textContent.fitment, ...patch } } })),
+  setFitmentStyle: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        fitment: { ...s.textContent.fitment, style: { ...s.textContent.fitment.style, ...patch } },
+      },
+    })),
+  setFitmentBackground: (patch) =>
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        fitment: {
+          ...s.textContent.fitment,
+          background: { ...s.textContent.fitment.background, ...patch },
+        },
+      },
+    })),
+  applyTextPreset: (key) => {
+    const preset = TEXT_PRESETS.find((p) => p.key === key);
+    if (!preset) return;
+    set((s) => ({
+      textContent: {
+        ...s.textContent,
+        title: {
+          ...s.textContent.title,
+          style: { ...s.textContent.title.style, ...(preset.apply.title ?? {}) },
+        },
+        code: {
+          ...s.textContent.code,
+          style: { ...s.textContent.code.style, ...(preset.apply.code ?? {}) },
+        },
+        fitment: {
+          ...s.textContent.fitment,
+          style: { ...s.textContent.fitment.style, ...(preset.apply.fitment ?? {}) },
+        },
+      },
+    }));
+  },
 
   // ----- UI -----
   isProcessing: false,
