@@ -294,7 +294,14 @@ export const DEFAULT_PRODUCT_TEXT_CONTENT: ProductTextContent = {
 
 /* ───────── Style presets (apply to title / code / fitment) ───────── */
 
-export type TextPresetKey = 'marketplace_bold' | 'clean_pro' | 'promo_strong' | 'shopee_style';
+export type TextPresetKey =
+  | 'marketplace_bold'
+  | 'clean_pro'
+  | 'promo_strong'
+  | 'shopee_style'
+  | 'marketplace_gagalin'
+  | 'motter_bold_product'
+  | 'lilita_clean_bold';
 
 export interface TextPreset {
   key: TextPresetKey;
@@ -347,6 +354,36 @@ export const TEXT_PRESETS: TextPreset[] = [
       title:   { fontFamily: 'Anton', color: '#dc2626', outlineColor: '#000000', outlineWidth: 6, letterSpacing: 1, fontWeight: 700 },
       code:    { fontFamily: 'Anton', color: '#fbbf24', outlineColor: '#000000', outlineWidth: 5, letterSpacing: 2, fontWeight: 700 },
       fitment: { fontFamily: 'Anton', color: '#fde047', outlineColor: '#dc2626', outlineWidth: 3, letterSpacing: 0.5, fontWeight: 700 },
+    },
+  },
+  {
+    key: 'marketplace_gagalin',
+    label: 'Marketplace Gagalin',
+    description: 'Headline merah outline hitam pakai font Gagalin.',
+    apply: {
+      title:   { fontFamily: 'Gagalin',          color: '#dc2626', outlineColor: '#000000', outlineWidth: 6, letterSpacing: 1, fontWeight: 400 },
+      code:    { fontFamily: 'Gagalin',          color: '#fbbf24', outlineColor: '#000000', outlineWidth: 5, letterSpacing: 2, fontWeight: 400 },
+      fitment: { fontFamily: 'Gagalin',          color: '#fde047', outlineColor: '#dc2626', outlineWidth: 3, letterSpacing: 0.5, fontWeight: 400 },
+    },
+  },
+  {
+    key: 'motter_bold_product',
+    label: 'Motter Bold Product',
+    description: 'ITC Motter Corpus — bold, cocok sparepart otomotif.',
+    apply: {
+      title:   { fontFamily: 'ITC Motter Corpus', color: '#dc2626', outlineColor: '#000000', outlineWidth: 6, fontWeight: 400 },
+      code:    { fontFamily: 'ITC Motter Corpus', color: '#fbbf24', outlineColor: '#000000', outlineWidth: 5, fontWeight: 400 },
+      fitment: { fontFamily: 'Bebas Neue',        color: '#fde047', outlineColor: '#dc2626', outlineWidth: 3, fontWeight: 700 },
+    },
+  },
+  {
+    key: 'lilita_clean_bold',
+    label: 'Lilita Clean Bold',
+    description: 'Lilita One — clean tapi tetap bold & ramah dibaca.',
+    apply: {
+      title:   { fontFamily: 'Lilita One', color: '#dc2626', outlineColor: '#000000', outlineWidth: 5, fontWeight: 400 },
+      code:    { fontFamily: 'Lilita One', color: '#fbbf24', outlineColor: '#000000', outlineWidth: 4, fontWeight: 400 },
+      fitment: { fontFamily: 'Lilita One', color: '#fde047', outlineColor: '#dc2626', outlineWidth: 3, fontWeight: 400 },
     },
   },
 ];

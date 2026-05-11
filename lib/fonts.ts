@@ -1,9 +1,15 @@
 /**
- * Curated list of fonts for the text overlays — loaded via Google Fonts in
- * app/layout.tsx so they're available to both CSS preview and Canvas2D draws.
+ * Curated list of fonts for the text overlays.
  *
- * For Canvas2D rendering, we ALWAYS call ensureFontReady() in lib/textComposer.ts
- * before drawing so the actual font is used (not the fallback).
+ * Loading strategy:
+ *  - google: true  → loaded automatically via Google Fonts CDN
+ *                     (URL built by buildGoogleFontsUrl(), injected in app/layout.tsx)
+ *  - google: false → loaded by @font-face declarations in app/globals.css
+ *                     (place the actual font files in /public/fonts/)
+ *
+ * For Canvas2D rendering, lib/textComposer.ts always calls document.fonts.load(...)
+ * before drawing, so as long as the font is declared (either way), it will be
+ * used in the final exported image.
  */
 
 export type FontFamily =
@@ -16,34 +22,41 @@ export type FontFamily =
   | 'Bangers'
   | 'Archivo Black'
   | 'Inter'
-  | 'Impact';
+  | 'Impact'
+  | 'Gagalin'              // local @font-face
+  | 'ITC Motter Corpus'    // local @font-face
+  | 'Lilita One';          // Google Font
 
 export interface FontInfo {
   family: FontFamily;
-  /** Category label for the dropdown */
   category: 'Bold / Strong' | 'Clean / Professional' | 'Playful / Marketplace' | 'Compact / Narrow';
-  /** Font weights available (used to render the dropdown previews) */
   weights: number[];
-  /** Whether this font is loaded from Google (true) or system fallback (false) */
+  /** true = loaded from Google Fonts CDN, false = local @font-face in /public/fonts */
   google: boolean;
 }
 
 export const FONT_LIST: FontInfo[] = [
-  { family: 'Anton',         category: 'Compact / Narrow',       weights: [400],                      google: true },
-  { family: 'Bebas Neue',    category: 'Compact / Narrow',       weights: [400],                      google: true },
-  { family: 'Oswald',        category: 'Bold / Strong',          weights: [400, 600, 700],            google: true },
-  { family: 'Archivo Black', category: 'Bold / Strong',          weights: [400],                      google: true },
-  { family: 'Bangers',       category: 'Playful / Marketplace',  weights: [400],                      google: true },
-  { family: 'Luckiest Guy',  category: 'Playful / Marketplace',  weights: [400],                      google: true },
-  { family: 'Montserrat',    category: 'Clean / Professional',   weights: [400, 600, 700, 800, 900],  google: true },
-  { family: 'Poppins',       category: 'Clean / Professional',   weights: [400, 600, 700, 800],       google: true },
-  { family: 'Inter',         category: 'Clean / Professional',   weights: [400, 600, 700, 800],       google: true },
-  { family: 'Impact',        category: 'Bold / Strong',          weights: [400],                      google: false },
+  // Local / system fallback
+  { family: 'Gagalin',            category: 'Bold / Strong',         weights: [400],                      google: false },
+  { family: 'ITC Motter Corpus',  category: 'Bold / Strong',         weights: [400],                      google: false },
+  // Google Fonts
+  { family: 'Lilita One',         category: 'Bold / Strong',         weights: [400],                      google: true  },
+  { family: 'Anton',              category: 'Compact / Narrow',      weights: [400],                      google: true  },
+  { family: 'Bebas Neue',         category: 'Compact / Narrow',      weights: [400],                      google: true  },
+  { family: 'Oswald',             category: 'Bold / Strong',         weights: [400, 600, 700],            google: true  },
+  { family: 'Archivo Black',      category: 'Bold / Strong',         weights: [400],                      google: true  },
+  { family: 'Bangers',            category: 'Playful / Marketplace', weights: [400],                      google: true  },
+  { family: 'Luckiest Guy',       category: 'Playful / Marketplace', weights: [400],                      google: true  },
+  { family: 'Montserrat',         category: 'Clean / Professional',  weights: [400, 600, 700, 800, 900],  google: true  },
+  { family: 'Poppins',            category: 'Clean / Professional',  weights: [400, 600, 700, 800],       google: true  },
+  { family: 'Inter',              category: 'Clean / Professional',  weights: [400, 600, 700, 800],       google: true  },
+  // System fallback (no network)
+  { family: 'Impact',             category: 'Bold / Strong',         weights: [400],                      google: false },
 ];
 
 /**
- * Builds the Google Fonts CSS URL with all our families & weights.
- * Use this in app/layout.tsx as a <link href={...}> tag.
+ * Builds the Google Fonts CSS URL for all `google: true` families.
+ * Used in app/layout.tsx as a <link href={...}> tag.
  */
 export function buildGoogleFontsUrl(): string {
   const parts: string[] = [];

@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Local custom fonts.
+ *
+ * Drop the font files into  /public/fonts/  with these EXACT filenames:
+ *   gagalin.woff2            (or .woff / .ttf / .otf — any one is fine)
+ *   itc-motter-corpus.woff2  (or .woff / .ttf / .otf — any one is fine)
+ *
+ * The browser tries each format() in order and uses the first one that
+ * exists; the rest just return 404 silently. So you only need ONE format
+ * per font, but you can drop multiple if you have them.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Gagalin";
+  /* First match wins. We list the actual filenames in /public/fonts/ first,
+     followed by lowercase fallbacks so future drop-ins still work. */
+  src: url("/fonts/Gagalin-Regular.otf")   format("opentype"),
+       url("/fonts/Gagalin-Regular.woff2") format("woff2"),
+       url("/fonts/Gagalin-Regular.ttf")   format("truetype"),
+       url("/fonts/gagalin.woff2")         format("woff2"),
+       url("/fonts/gagalin.otf")           format("opentype"),
+       url("/fonts/gagalin.ttf")           format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ITC Motter Corpus";
+  src: url("/fonts/MotterCorpusStd-Regular.woff2") format("woff2"),
+       url("/fonts/MotterCorpusStd-Regular.otf")   format("opentype"),
+       url("/fonts/MotterCorpusStd-Regular.ttf")   format("truetype"),
+       url("/fonts/itc-motter-corpus.woff2")       format("woff2"),
+       url("/fonts/itc-motter-corpus.otf")         format("opentype"),
+       url("/fonts/itc-motter-corpus.ttf")         format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: 250 250 250;
   --foreground: 23 23 23;
