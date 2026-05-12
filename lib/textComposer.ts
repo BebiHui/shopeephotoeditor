@@ -222,17 +222,14 @@ async function drawTextBlock(args: DrawTextBlockArgs): Promise<DrawTextBlockResu
     drawRoundedRect(ctx, blockX, blockY, blockWidth, blockHeight, radius, background.color, background.opacity);
   }
 
-  // Text drawing
+  // Text drawing — Canva-style:
+  //  1) (optional) shadow pass drawn once based on the glyph silhouette
+  //  2) dilated outline (many fillText copies offset around (x,y) by `outlineWidth`)
+  //     → outline stays OUTSIDE the glyph (no body-eating) and has no spike artifacts
+  //  3) final fill text on top
   ctx.save();
   ctx.globalAlpha = clamp(style.opacity, 0, 1);
-  applyFont(ctx, style, fontSizePx); // re-apply (saved/restored state could've reset)
-
-  if (style.shadowEnabled) {
-    ctx.shadowColor = style.shadowColor;
-    ctx.shadowBlur = style.shadowBlur * scale;
-    ctx.shadowOffsetX = style.shadowOffsetX * scale;
-    ctx.shadowOffsetY = style.shadowOffsetY * scale;
-  }
+  applyFont(ctx, style, fontSizePx);
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -242,16 +239,7 @@ async function drawTextBlock(args: DrawTextBlockArgs): Promise<DrawTextBlockResu
     if (style.textAlign === 'right') drawX = textX + (textWidth - lineW);
     const drawY = textY + i * lineHeight;
 
-    // Outline first (so it sits behind the fill)
-    if (outlineWidthPx > 0) {
-      ctx.lineWidth = outlineWidthPx;
-      ctx.strokeStyle = style.outlineColor;
-      ctx.lineJoin = 'round';
-      ctx.miterLimit = 2;
-      ctx.strokeText(line, drawX, drawY);
-    }
-    ctx.fillStyle = style.color;
-    ctx.fillText(line, drawX, drawY);
+    drawStyledLine(ctx, line, drawX, drawY, style, outlineWidthPx, scale);
   }
   ctx.restore();
 
@@ -264,6 +252,58 @@ async function drawTextBlock(args: DrawTextBlockArgs): Promise<DrawTextBlockResu
     blockHeight,
     bottom: blockY + blockHeight,
   };
+}
+
+/**
+ * Render a single line of text with Canva-style "puffy" outline.
+ *
+ *   1. Optional shadow — drawn once using the glyph silhouette so we don't
+ *      stack 30+ shadows from the dilation passes.
+ *   2. Dilated outline — N copies of the same fillText offset around (x,y)
+ *      by `outlineWidth`. The outline lives ENTIRELY outside the glyph (it
+ *      doesn't eat into the body), and there are no jaggies at sharp corners
+ *      because we're drawing filled glyphs, not stroking a path.
+ *   3. Fill text on top.
+ *
+ * `steps` of 36 is plenty smooth for any outline width up to ~25 px @ canvas.
+ */
+function drawStyledLine(
+  ctx: CanvasRenderingContext2D,
+  line: string,
+  x: number,
+  y: number,
+  style: TextStyle,
+  outlineWidth: number,
+  scale: number
+) {
+  // 1) Shadow pass — single fillText of the glyph silhouette so the shadow
+  // is rendered once. We use outlineColor when there's an outline (since the
+  // outline forms the visible silhouette) and fillColor otherwise.
+  if (style.shadowEnabled) {
+    ctx.save();
+    ctx.shadowColor = style.shadowColor;
+    ctx.shadowBlur = Math.max(0, style.shadowBlur) * scale;
+    ctx.shadowOffsetX = style.shadowOffsetX * scale;
+    ctx.shadowOffsetY = style.shadowOffsetY * scale;
+    ctx.fillStyle = outlineWidth > 0 ? style.outlineColor : style.color;
+    ctx.fillText(line, x, y);
+    ctx.restore();
+  }
+
+  // 2) Dilated outline
+  if (outlineWidth > 0) {
+    ctx.fillStyle = style.outlineColor;
+    // Scale step count with radius so very thick outlines stay continuous.
+    const steps = Math.min(72, Math.max(36, Math.ceil(outlineWidth * 6)));
+    for (let k = 0; k < steps; k++) {
+      const a = (k / steps) * Math.PI * 2;
+      ctx.fillText(line, x + Math.cos(a) * outlineWidth, y + Math.sin(a) * outlineWidth);
+    }
+  }
+
+  // 3) Fill on top
+  ctx.fillStyle = style.color;
+  ctx.fillText(line, x, y);
 }
 
 /* ───────── High-level entry point ───────── */
