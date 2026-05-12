@@ -255,17 +255,20 @@ async function drawTextBlock(args: DrawTextBlockArgs): Promise<DrawTextBlockResu
 }
 
 /**
- * Render a single line of text with Canva-style "puffy" outline.
+ * Render a single line of text with the marketplace-spiky outline look.
  *
- *   1. Optional shadow — drawn once using the glyph silhouette so we don't
- *      stack 30+ shadows from the dilation passes.
- *   2. Dilated outline — N copies of the same fillText offset around (x,y)
- *      by `outlineWidth`. The outline lives ENTIRELY outside the glyph (it
- *      doesn't eat into the body), and there are no jaggies at sharp corners
- *      because we're drawing filled glyphs, not stroking a path.
- *   3. Fill text on top.
+ * Uses ctx.strokeText() so the outline follows the EXACT glyph path — this
+ * preserves the font's natural character. Display fonts like Gagalin have
+ * grunge/spike texture built into their glyph outlines; with strokeText
+ * that character is faithfully reproduced (matches what Canva shows).
  *
- * `steps` of 36 is plenty smooth for any outline width up to ~25 px @ canvas.
+ * Shadow is set BEFORE the first draw (the stroke) so it casts from the
+ * outline silhouette, then cleared so the fill doesn't add a second shadow.
+ *
+ *   1. Apply shadow on the context.
+ *   2. strokeText with thick lineWidth and sharp miter joins.
+ *   3. Clear shadow (otherwise the fill pass would stack a 2nd shadow).
+ *   4. fillText on top.
  */
 function drawStyledLine(
   ctx: CanvasRenderingContext2D,
@@ -276,32 +279,36 @@ function drawStyledLine(
   outlineWidth: number,
   scale: number
 ) {
-  // 1) Shadow pass — single fillText of the glyph silhouette so the shadow
-  // is rendered once. We use outlineColor when there's an outline (since the
-  // outline forms the visible silhouette) and fillColor otherwise.
-  if (style.shadowEnabled) {
-    ctx.save();
+  const hasShadow = style.shadowEnabled;
+  const hasOutline = outlineWidth > 0;
+
+  // 1) Shadow (once, so it doesn't stack between stroke & fill)
+  if (hasShadow) {
     ctx.shadowColor = style.shadowColor;
     ctx.shadowBlur = Math.max(0, style.shadowBlur) * scale;
     ctx.shadowOffsetX = style.shadowOffsetX * scale;
     ctx.shadowOffsetY = style.shadowOffsetY * scale;
-    ctx.fillStyle = outlineWidth > 0 ? style.outlineColor : style.color;
-    ctx.fillText(line, x, y);
-    ctx.restore();
   }
 
-  // 2) Dilated outline
-  if (outlineWidth > 0) {
-    ctx.fillStyle = style.outlineColor;
-    // Scale step count with radius so very thick outlines stay continuous.
-    const steps = Math.min(72, Math.max(36, Math.ceil(outlineWidth * 6)));
-    for (let k = 0; k < steps; k++) {
-      const a = (k / steps) * Math.PI * 2;
-      ctx.fillText(line, x + Math.cos(a) * outlineWidth, y + Math.sin(a) * outlineWidth);
+  // 2) Outline pass — strokeText follows the glyph path, preserving spikes/grunge.
+  // 'miter' join with high miterLimit keeps the spikes pronounced (don't round them off).
+  if (hasOutline) {
+    ctx.lineWidth = outlineWidth;
+    ctx.strokeStyle = style.outlineColor;
+    ctx.lineJoin = 'miter';
+    ctx.miterLimit = 12;
+    ctx.strokeText(line, x, y);
+
+    // 3) Disable shadow before fill so we don't stack a second shadow.
+    if (hasShadow) {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
     }
   }
 
-  // 3) Fill on top
+  // 4) Fill on top of the outline (which means fill sits inside the stroked path)
   ctx.fillStyle = style.color;
   ctx.fillText(line, x, y);
 }

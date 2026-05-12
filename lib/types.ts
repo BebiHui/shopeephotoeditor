@@ -301,7 +301,10 @@ export type TextPresetKey =
   | 'shopee_style'
   | 'marketplace_gagalin'
   | 'motter_bold_product'
-  | 'lilita_clean_bold';
+  | 'lilita_clean_bold'
+  | 'gagalin_canva_spiky'
+  | 'gagalin_yellow_code'
+  | 'gagalin_motor_list';
 
 export interface TextPreset {
   key: TextPresetKey;
@@ -384,6 +387,98 @@ export const TEXT_PRESETS: TextPreset[] = [
       title:   { fontFamily: 'Lilita One', color: '#dc2626', outlineColor: '#000000', outlineWidth: 5, fontWeight: 400 },
       code:    { fontFamily: 'Lilita One', color: '#fbbf24', outlineColor: '#000000', outlineWidth: 4, fontWeight: 400 },
       fitment: { fontFamily: 'Lilita One', color: '#fde047', outlineColor: '#dc2626', outlineWidth: 3, fontWeight: 400 },
+    },
+  },
+  /* ── Gagalin "Canva spiky/grunge" presets — preserve font's natural texture ── */
+  {
+    key: 'gagalin_canva_spiky',
+    label: 'Gagalin Canva Spiky',
+    description: 'Headline merah outline hitam tebal + shadow. Spiky/grunge.',
+    apply: {
+      title: {
+        fontFamily: 'Gagalin',
+        fontWeight: 400,
+        color: '#FF0000',           // pure red, paling mencolok
+        outlineColor: '#000000',    // black, tebal
+        outlineWidth: 14,           // 14 px @ 1024 — Canva-tier thickness
+        shadowEnabled: true,
+        shadowColor: '#000000',
+        shadowBlur: 4,
+        shadowOffsetX: 4,
+        shadowOffsetY: 4,
+        letterSpacing: 0,
+        lineHeight: 0.9,
+        textAlign: 'left',
+        opacity: 1,
+      },
+      code: {
+        fontFamily: 'Gagalin',
+        fontWeight: 400,
+        color: '#FFFF00',
+        outlineColor: '#000000',
+        outlineWidth: 10,
+        shadowEnabled: true,
+        shadowColor: '#000000',
+        shadowBlur: 3,
+        shadowOffsetX: 3,
+        shadowOffsetY: 3,
+        letterSpacing: 1,
+        lineHeight: 1,
+        opacity: 1,
+      },
+      fitment: {
+        fontFamily: 'Gagalin',
+        fontWeight: 400,
+        color: '#FFFF00',
+        outlineColor: '#000000',
+        outlineWidth: 6,
+        shadowEnabled: false,
+        letterSpacing: 0.5,
+        lineHeight: 1.15,
+        opacity: 1,
+      },
+    },
+  },
+  {
+    key: 'gagalin_yellow_code',
+    label: 'Gagalin Yellow Code',
+    description: 'Khusus Kode Produk — kuning + outline hitam tebal & shadow.',
+    apply: {
+      code: {
+        fontFamily: 'Gagalin',
+        fontWeight: 400,
+        color: '#FFFF00',
+        outlineColor: '#000000',
+        outlineWidth: 12,           // 7-12 range, ambil atas biar mencolok
+        shadowEnabled: true,
+        shadowColor: '#000000',
+        shadowBlur: 3,
+        shadowOffsetX: 3,
+        shadowOffsetY: 4,
+        letterSpacing: 1,
+        lineHeight: 1,
+        textAlign: 'left',
+        opacity: 1,
+      },
+    },
+  },
+  {
+    key: 'gagalin_motor_list',
+    label: 'Gagalin Motor List',
+    description: 'Khusus Peruntukan Motor — kuning + outline hitam, bold padat.',
+    apply: {
+      fitment: {
+        fontFamily: 'Gagalin',
+        fontWeight: 400,
+        color: '#FFFF00',
+        outlineColor: '#000000',
+        outlineWidth: 7,
+        shadowEnabled: false,
+        letterSpacing: 0.5,
+        lineHeight: 1.15,
+        textAlign: 'left',
+        opacity: 1,
+      },
     },
   },
 ];
