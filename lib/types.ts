@@ -80,6 +80,9 @@ export const PRESET_PARAMS: Record<Exclude<EnhancementPreset, 'custom'>, Enhance
 
 export interface TopRightLogo {
   enabled: boolean;
+  /** Persistent reference to the Logo Library entry. Survives refresh. */
+  logoId?: string;
+  /** Object URL — only valid in current session; rehydrated from IDB on load. */
   url?: string;
   fileName?: string;
 }
@@ -495,3 +498,48 @@ export const QUICK_COLORS = [
   '#f97316', // orange
   '#16a34a', // green
 ];
+
+/* ───────── User-saved Presets (Preset Manager) ─────────
+ * A Preset is the full editor configuration (logos, styles, canvas, text)
+ * EXCEPT for transient things like object URLs. Logos are referenced by
+ * `logoId` which maps to a record in IndexedDB (Logo Library).
+ */
+
+/**
+ * Slice of editor state that's safe to JSON-stringify and persist.
+ * NO blob URLs (regenerated on load), NO photos (per-session work).
+ */
+export interface SerializableEditorState {
+  /** Main store logo selection (logoId) */
+  selectedLogoId: string | null;
+
+  preset: EnhancementPreset;
+  manualEnhancement: EnhancementParams;
+  logoConfig: LogoConfig;
+  canvasConfig: CanvasConfig;
+
+  /** Top-right logos: only persist {enabled, logoId, fileName} — no urls */
+  topRightLogosCfg: {
+    logo1: { enabled: boolean; logoId?: string; fileName?: string };
+    logo2: { enabled: boolean; logoId?: string; fileName?: string };
+    widthPx: number;
+    marginTopPx: number;
+    marginRightPx: number;
+    gapPx: number;
+    opacity: number;
+  };
+
+  /** Optionally include current text content. Style/layout always included via textContent. */
+  textContent?: ProductTextContent;
+
+  fileNamePrefix: string;
+}
+
+export interface Preset {
+  id: string;
+  name: string;
+  createdAt: string;   // ISO
+  updatedAt: string;   // ISO
+  state: SerializableEditorState;
+}
+

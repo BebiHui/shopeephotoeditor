@@ -8,6 +8,7 @@ import { LogoControls } from '@/components/LogoControls';
 import { TopRightLogosControls } from '@/components/TopRightLogosControls';
 import { TextContentControls } from '@/components/TextContentControls';
 import { CanvasControls } from '@/components/CanvasControls';
+import { PresetManager } from '@/components/PresetManager';
 import { PhotoGrid } from '@/components/PhotoGrid';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { Stepper, type Step } from '@/components/Stepper';
@@ -38,6 +39,30 @@ export default function HomePage() {
   const clearPhotos = useEditorStore((s) => s.clearPhotos);
 
   const [warmedUp, setWarmedUp] = useState(false);
+
+  // ── Hydration: load logo library + restore last session / default preset ──
+  const hydrate = useEditorStore((s) => s.hydrate);
+  const hydrated = useEditorStore((s) => s.hydrated);
+  const [restoreToast, setRestoreToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (hydrated) return;
+    let cancelled = false;
+    hydrate().then((res) => {
+      if (cancelled) return;
+      if (res.restoredLastSession) setRestoreToast('Last session restored');
+      else if (res.restoredDefaultPreset) setRestoreToast('Default preset loaded');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrate, hydrated]);
+
+  // Auto-dismiss the restore toast after 3.5s
+  useEffect(() => {
+    if (!restoreToast) return;
+    const t = setTimeout(() => setRestoreToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [restoreToast]);
 
   // Resolve currently selected logo URL
   const selectedLogoUrl = useMemo(
@@ -187,11 +212,33 @@ export default function HomePage() {
         </div>
       </header>
 
+      {restoreToast && (
+        <div className="mb-3 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          <span>✓ {restoreToast}</span>
+          <button
+            onClick={() => setRestoreToast(null)}
+            className="text-emerald-700 hover:text-emerald-900"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <Stepper steps={steps} />
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left column: setup */}
         <div className="space-y-6 lg:col-span-1">
+          <Card>
+            <CardHeader
+              title="Preset Manager"
+              subtitle="Save / load / default — semua setting Anda dalam satu klik."
+            />
+            <CardBody>
+              <PresetManager />
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader step={1} title="Upload Foto Produk" subtitle="JPG / PNG / WEBP — boleh banyak sekaligus." />
             <CardBody>
